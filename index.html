@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>보안등급 관리</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;}
+    .modal-backdrop { backdrop-filter: blur(2px); }
+  </style>
+</head>
+<body class="bg-gray-50">
+
+<!-- 헤더 -->
+<div class="bg-white border-b border-gray-200 px-6 py-4">
+  <div class="flex items-center justify-between">
+    <h1 class="text-xl font-bold text-gray-900">보안등급 관리</h1>
+    <div class="text-sm text-gray-500">
+      HOME &gt; 관리자 &gt; 코드관리 &gt; <span class="font-medium text-gray-900">보안등급</span>
+    </div>
+  </div>
+</div>
+
+<!-- 메인 컨텐츠 -->
+<div class="p-6">
+  <div class="bg-white rounded-lg border border-gray-200 p-5">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-sm font-semibold text-gray-800 flex items-center gap-2">
+        <span class="w-1 h-4 bg-blue-500 rounded"></span>
+        보안등급 목록 (<span id="list-count">8</span>)
+      </h2>
+      <div class="flex gap-2">
+        <button
+          id="btn-delete"
+          class="px-3 py-1.5 border border-gray-300 text-gray-400 rounded text-xs font-medium"
+          disabled
+        >
+          삭제 (<span id="selected-count">0</span>)
+        </button>
+        <button
+          id="btn-add"
+          class="px-3 py-1.5 bg-blue-500 text-white rounded text-xs font-medium hover:bg-blue-600"
+        >
+          + 신규등록
+        </button>
+      </div>
+    </div>
+
+    <!-- 검색 -->
+    <div class="mb-4">
+      <div class="relative max-w-md">
+        <input
+          type="text"
+          id="search-input"
+          placeholder="등급코드 또는 등급명 검색..."
+          class="w-full border border-gray-300 rounded px-3 py-2 pl-9 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+        />
+        <svg class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+    </div>
+
+    <!-- 테이블 -->
+    <div class="border border-gray-200 rounded overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="w-10 py-3 px-3 border-b border-gray-200">
+              <input type="checkbox" id="check-all" class="w-4 h-4 rounded cursor-pointer" />
+            </th>
+            <th class="py-3 px-3 text-left text-gray-600 border-b w-24">등급코드</th>
+            <th class="py-3 px-3 text-left text-gray-600 border-b">등급명</th>
+            <th class="py-3 px-3 text-left text-gray-600 border-b">설명</th>
+            <th class="py-3 px-3 text-center text-gray-600 border-b w-32">관리</th>
+          </tr>
+        </thead>
+        <tbody id="table-tbody">
+          <!-- 데이터 행은 JavaScript로 렌더링 -->
+        </tbody>
+      </table>
+
+      <!-- 빈 상태 -->
+      <div id="empty-state" class="text-center py-12 text-gray-400 hidden">
+        <svg class="w-12 h-12 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+        <p class="text-sm">검색 결과가 없습니다</p>
+      </div>
+    </div>
+
+    <!-- 안내 -->
+    <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+      <p class="text-sm text-yellow-800 flex items-center gap-2">
+        <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+        </svg>
+        보안등급은 사용자 권한 관리에 사용됩니다. 등급 삭제 시 해당 등급을 사용하는 사용자의 권한에 영향을 줄 수 있습니다.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- 신규등록 모달 -->
+<div id="add-modal" class="fixed inset-0 bg-black/50 modal-backdrop hidden items-center justify-center z-50">
+  <div class="bg-white rounded-lg shadow-xl w-full max-w-md">
+    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+      <h3 class="font-bold text-gray-800">보안등급 신규등록</h3>
+      <button id="modal-close" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+    </div>
+    
+    <form id="add-form">
+      <div class="p-6 space-y-4">
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">등급코드 <span class="text-red-500">*</span></label>
+          <input
+            type="text"
+            id="input-code"
+            placeholder="예: 30"
+            required
+            class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          />
+          <p class="text-xs text-gray-400 mt-1">숫자 2자리로 입력하세요</p>
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">등급명 <span class="text-red-500">*</span></label>
+          <input
+            type="text"
+            id="input-name"
+            placeholder="예: 일반사용자"
+            required
+            class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          />
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">설명</label>
+          <input
+            type="text"
+            id="input-description"
+            placeholder="등급에 대한 설명을 입력하세요"
+            class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          />
+        </div>
+      </div>
+
+      <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-2 bg-gray-50">
+        <button
+          type="button"
+          id="modal-cancel"
+          class="px-4 py-2 border border-gray-300 text-gray-700 rounded text-sm font-medium hover:bg-white"
+        >
+          취소
+        </button>
+        <button
+          type="submit"
+          class="px-6 py-2 bg-blue-500 text-white rounded text-sm font-medium hover:bg-blue-600"
+        >
+          등록
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// ==================== 데이터 ====================
+let securityLevelList = [
+  { id: 1, code: '00', name: 'SIMS_관리자(모든권한)', description: '시스템 전체 관리 권한' },
+  { id: 2, code: '10', name: '기술지원 SIMS_현업관리자', description: '기술지원 부서 관리자 권한' },
+  { id: 3, code: '11', name: '기술지원_팀장1(사용불)', description: '사용하지 않는 등급' },
+  { id: 4, code: '12', name: '기술지원_팀장2(사용불)', description: '사용하지 않는 등급' },
+  { id: 5, code: '13', name: '기술지원', description: '기술지원 담당자 권한' },
+  { id: 6, code: '21', name: '팀장1(사용불)', description: '사용하지 않는 등급' },
+  { id: 7, code: '22', name: '팀장2(사용불)', description: '사용하지 않는 등급' },
+  { id: 8, code: '23', name: '정회원', description: '일반 정회원 권한' },
+];
+
+let selectedRows = [];
+let editingId = null;
+
+// ==================== 렌더링 ====================
+function renderTable() {
+  const tbody = document.getElementById('table-tbody');
+  const searchKeyword = document.getElementById('search-input').value.toLowerCase();
+  
+  const filtered = securityLevelList.filter(s =>
+    s.code.toLowerCase().includes(searchKeyword) ||
+    s.name.toLowerCase().includes(searchKeyword)
+  );
+
+  const emptyState = document.getElementById('empty-state');
+  
+  if (filtered.length === 0) {
+    tbody.innerHTML = '';
+    emptyState.classList.remove('hidden');
+  } else {
+    emptyState.classList.add('hidden');
+    tbody.innerHTML = filtered.map(level => `
+      <tr class="border-b border-gray-100 hover:bg-gray-50">
+        <td class="py-3 px-3 text-center">
+          <input 
+            type="checkbox" 
+            class="row-checkbox w-4 h-4 rounded cursor-pointer" 
+            data-id="${level.id}"
+            ${selectedRows.includes(level.id) ? 'checked' : ''}
+          />
+        </td>
+        <td class="py-3 px-3">
+          ${editingId === level.id ? `
+            <input
+              type="text"
+              class="edit-input w-full border border-gray-300 rounded px-2 py-1 text-sm font-mono"
+              data-id="${level.id}"
+              data-field="code"
+              value="${level.code}"
+            />
+          ` : `
+            <span class="font-mono bg-gray-100 px-2 py-1 rounded">${level.code}</span>
+          `}
+        </td>
+        <td class="py-3 px-3">
+          ${editingId === level.id ? `
+            <input
+              type="text"
+              class="edit-input w-full border border-gray-300 rounded px-2 py-1 text-sm"
+              data-id="${level.id}"
+              data-field="name"
+              value="${level.name}"
+            />
+          ` : `
+            <span class="${level.name.includes('사용불') ? 'text-gray-400' : 'text-gray-800'}">
+              ${level.name}
+            </span>
+          `}
+        </td>
+        <td class="py-3 px-3">
+          ${editingId === level.id ? `
+            <input
+              type="text"
+              class="edit-input w-full border border-gray-300 rounded px-2 py-1 text-sm"
+              data-id="${level.id}"
+              data-field="description"
+              value="${level.description || ''}"
+              placeholder="설명 입력"
+            />
+          ` : `
+            <span class="text-gray-500">${level.description || '-'}</span>
+          `}
+        </td>
+        <td class="py-3 px-3 text-center">
+          ${editingId === level.id ? `
+            <div class="flex items-center justify-center gap-2">
+              <button class="btn-save text-green-600 text-xs hover:underline">저장</button>
+              <span class="text-gray-300">|</span>
+              <button class="btn-cancel text-gray-500 text-xs hover:underline">취소</button>
+            </div>
+          ` : `
+            <button class="btn-edit text-blue-500 text-xs hover:underline" data-id="${level.id}">수정</button>
+          `}
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  document.getElementById('list-count').textContent = filtered.length;
+  updateCheckboxes();
+  attachEditListeners();
+}
+
+function updateCheckboxes() {
+  const checkAll = document.getElementById('check-all');
+  const checkboxes = document.querySelectorAll('.row-checkbox');
+  checkAll.checked = checkboxes.length > 0 && selectedRows.length === checkboxes.length;
+  
+  const deleteBtn = document.getElementById('btn-delete');
+  document.getElementById('selected-count').textContent = selectedRows.length;
+  
+  if (selectedRows.length > 0) {
+    deleteBtn.disabled = false;
+    deleteBtn.classList.remove('border-gray-300', 'text-gray-400');
+    deleteBtn.classList.add('border-red-500', 'text-red-500', 'hover:bg-red-50');
+  } else {
+    deleteBtn.disabled = true;
+    deleteBtn.classList.add('border-gray-300', 'text-gray-400');
+    deleteBtn.classList.remove('border-red-500', 'text-red-500', 'hover:bg-red-50');
+  }
+}
+
+function attachEditListeners() {
+  // 수정 버튼
+  document.querySelectorAll('.btn-edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      editingId = parseInt(btn.dataset.id);
+      renderTable();
+    });
+  });
+
+  // 저장 버튼
+  document.querySelectorAll('.btn-save').forEach(btn => {
+    btn.addEventListener('click', () => {
+      editingId = null;
+      renderTable();
+    });
+  });
+
+  // 취소 버튼
+  document.querySelectorAll('.btn-cancel').forEach(btn => {
+    btn.addEventListener('click', () => {
+      // 원본 데이터로 복원 (실제로는 다시 렌더링하면 자동 복원)
+      editingId = null;
+      renderTable();
+    });
+  });
+
+  // 입력 필드 변경
+  document.querySelectorAll('.edit-input').forEach(input => {
+    input.addEventListener('input', (e) => {
+      const id = parseInt(e.target.dataset.id);
+      const field = e.target.dataset.field;
+      const value = e.target.value;
+      
+      securityLevelList = securityLevelList.map(s =>
+        s.id === id ? { ...s, [field]: value } : s
+      );
+    });
+  });
+}
+
+// ==================== 이벤트 ====================
+document.getElementById('search-input').addEventListener('input', renderTable);
+
+document.getElementById('check-all').addEventListener('change', (e) => {
+  const checkboxes = document.querySelectorAll('.row-checkbox');
+  if (e.target.checked) {
+    selectedRows = Array.from(checkboxes).map(cb => parseInt(cb.dataset.id));
+  } else {
+    selectedRows = [];
+  }
+  renderTable();
+});
+
+document.getElementById('table-tbody').addEventListener('change', (e) => {
+  if (e.target.classList.contains('row-checkbox')) {
+    const id = parseInt(e.target.dataset.id);
+    if (e.target.checked) {
+      selectedRows.push(id);
+    } else {
+      selectedRows = selectedRows.filter(i => i !== id);
+    }
+    updateCheckboxes();
+  }
+});
+
+document.getElementById('btn-delete').addEventListener('click', () => {
+  if (selectedRows.length === 0) return;
+  if (confirm(`선택한 ${selectedRows.length}개의 보안등급을 삭제하시겠습니까?`)) {
+    securityLevelList = securityLevelList.filter(s => !selectedRows.includes(s.id));
+    selectedRows = [];
+    renderTable();
+  }
+});
+
+document.getElementById('btn-add').addEventListener('click', () => {
+  document.getElementById('add-modal').classList.remove('hidden');
+  document.getElementById('add-modal').classList.add('flex');
+  document.getElementById('input-code').value = '';
+  document.getElementById('input-name').value = '';
+  document.getElementById('input-description').value = '';
+});
+
+document.getElementById('modal-close').addEventListener('click', closeModal);
+document.getElementById('modal-cancel').addEventListener('click', closeModal);
+
+document.getElementById('add-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'add-modal') closeModal();
+});
+
+document.getElementById('add-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  
+  const code = document.getElementById('input-code').value.trim();
+  const name = document.getElementById('input-name').value.trim();
+  const description = document.getElementById('input-description').value.trim();
+  
+  if (!code || !name) {
+    alert('필수 항목을 입력하세요');
+    return;
+  }
+  
+  const newItem = {
+    id: Date.now(),
+    code,
+    name,
+    description
+  };
+  
+  securityLevelList.push(newItem);
+  closeModal();
+  renderTable();
+});
+
+function closeModal() {
+  document.getElementById('add-modal').classList.add('hidden');
+  document.getElementById('add-modal').classList.remove('flex');
+}
+
+// ==================== 초기화 ====================
+renderTable();
+</script>
+
+</body>
+</html>
